@@ -1,5 +1,5 @@
-import { css } from '../js/utils.js'
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js"
+import { css, notice } from '../js/utils.js'
+import { getAuth, onAuthStateChanged, reauthenticateWithCredential, updatePassword, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js"
 import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"
 
 
@@ -32,7 +32,24 @@ class ProfileItem extends HTMLElement {
         const changePw = this._shadowRoot.querySelector("#change-pw")
         changePw.addEventListener('click', (e) => {
             e.preventDefault()
-            // changePassword() function
+            const email = prompt('Enter your email: ')
+            const password = prompt('Enter your password: ')
+            const credential = EmailAuthProvider.credential(email, password)
+            reauthenticateWithCredential(auth.currentUser, credential).then(() => {
+                let newPw = prompt('Enter your new password: ')
+                let newPwCf = prompt('Confirm your new password: ')
+                if (newPw == newPwCf && newPw.trim() !== "") {
+                    updatePassword(auth.currentUser, newPw).then(() => {
+                        notice('Password has been changed')
+                    }).catch(err => {
+                        notice(err.message)
+                    })
+                } else {
+                    notice('Wrong new password confirmation or invalid password')
+                }
+            }).catch(err => {
+                notice(err.message)
+            })
         })
 
         // Change username
