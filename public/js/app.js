@@ -2,6 +2,7 @@ import { initialize, copyright, notice, setupUI } from './utils.js'
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js"
 import '../components/login-form.js'
 import '../components/register-form.js'
+import '../components/profile-item.js'
 import '../screens/home-screen.js'
 
 // Initialize
