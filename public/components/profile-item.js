@@ -1,6 +1,6 @@
-import { css, notice } from '../js/utils.js'
-import { getAuth, onAuthStateChanged, reauthenticateWithCredential, updatePassword, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js"
-import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"
+import { css, notice, closeModal } from '../js/utils.js'
+import { getAuth, onAuthStateChanged, reauthenticateWithCredential, updatePassword, EmailAuthProvider, updateProfile } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js"
+import { getFirestore, doc, onSnapshot, getDocs, setDoc, query, collection, where } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"
 
 
 class ProfileItem extends HTMLElement {
@@ -56,7 +56,36 @@ class ProfileItem extends HTMLElement {
         const changeName = this._shadowRoot.querySelector("#change-name")
         changeName.addEventListener('click', (e) => {
             e.preventDefault()
-            // changeUsername() function
+            const username = prompt("Enter your new username: ")
+            if (username.trim() == "") {
+                notice("Please input valid username")
+            } else if (username.trim().length < 6) {
+                notice("Username must be at least 6 characters")
+            } else if (username.trim() == auth.currentUser.displayName) {
+                notice("New username must be different from current username")
+            } else {
+                closeModal("#profile-modal")
+                let exist = false
+                const q = query(collection(db, 'users'), where('username', '==', username.trim()))
+                getDocs(q).then(d => {
+                    d.forEach(data => {
+                        if (data.exists) {
+                            exist = true
+                        }
+                    })
+                    if (exist) {
+                        notice("This username has already been taken")
+                    } else {
+                        $('body').removeClass('loaded')
+                        const docRef = doc(db, 'users', auth.currentUser.uid)
+                        setDoc(docRef, { username: username }, { merge: true }).then(() => {
+                            $('body').addClass('loaded')
+                            notice("Username has been changed")
+                        })
+                        updateProfile(auth.currentUser, { displayName: username })
+                    }
+                })
+            }
         })
 
         // Check and change data for current user
