@@ -1,7 +1,7 @@
 import { css, notice, closeModal } from '../js/utils.js'
 import { getAuth, onAuthStateChanged, reauthenticateWithCredential, updatePassword, EmailAuthProvider, updateProfile } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js"
 import { getFirestore, doc, onSnapshot, getDocs, setDoc, query, collection, where } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"
-
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-storage.js"
 
 class ProfileItem extends HTMLElement {
     constructor() {
@@ -19,12 +19,36 @@ class ProfileItem extends HTMLElement {
         // Initialize
         const auth = getAuth()
         const db = getFirestore()
+        const storage = getStorage()
 
         // Change profile picture
         const changePp = this._shadowRoot.querySelector("#change-pp")
         changePp.addEventListener('change', (e) => {
             e.preventDefault()
-            // changeProfilePic(e) function
+
+            let file = e.target.files[0]
+            if (file) {
+                if (file.type.startsWith("image")) {
+                    $('body').removeClass('loaded')
+                    closeModal("#profile-modal")
+
+                    let fileRef = ref(storage, `users/${auth.currentUser.uid}.jpg`)
+                    uploadBytes(fileRef, file).then(() => {
+                        getDownloadURL(fileRef).then(url => {
+                            updateProfile(auth.currentUser, { photoURL: url })
+                            const docRef = doc(db, 'users', auth.currentUser.uid)
+                            setDoc(docRef, { photoURL: url }, { merge: true }).then(() => {
+                                $('body').addClass('loaded')
+                                notice("Profile picture has been changed")
+                            })
+                        })
+                    }).catch(err => {
+                        notice(err.message)
+                    })
+                } else {
+                    notice("Please choose an image")
+                }
+            }
             changePp.value = ''
         })
 
@@ -32,6 +56,7 @@ class ProfileItem extends HTMLElement {
         const changePw = this._shadowRoot.querySelector("#change-pw")
         changePw.addEventListener('click', (e) => {
             e.preventDefault()
+
             const email = prompt('Enter your email: ')
             const password = prompt('Enter your password: ')
             const credential = EmailAuthProvider.credential(email, password)
@@ -56,6 +81,7 @@ class ProfileItem extends HTMLElement {
         const changeName = this._shadowRoot.querySelector("#change-name")
         changeName.addEventListener('click', (e) => {
             e.preventDefault()
+
             const username = prompt("Enter your new username: ")
             if (username.trim() == "") {
                 notice("Please input valid username")
